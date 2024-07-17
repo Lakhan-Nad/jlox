@@ -31,16 +31,35 @@ public class Generator {
 
         writer.println(packageName + ";");
         writer.println();
-        writer.println("import java.util.List;");
+        //imports
         writer.println();
         writer.println("abstract class " + baseClass + " {");
+
+        // define base accept class
+        writer.println("\tabstract <R> R accept(Visitor<R> visitor);");
+
         for (String type : types) {
             String className = type.split(":")[0].trim();
             String fields = type.split(":")[1].trim();
             defineType(writer, baseClass, className, fields);
         }
+
         writer.println("}");
+        writer.print("\n\n");
+
+        defineVisitor(writer, "Visitor", baseClass, types);
+        
         writer.close();
+    }
+
+    private static void defineVisitor(PrintWriter writer, String string, String baseClass, List<String> types) {
+        writer.println("interface Visitor<T> {");
+        for (String type: types) {
+            writer.println();
+            String typeName = type.split(":")[0].trim();
+            writer.println(String.format("\tT visit%s(%s.%s obj);", typeName, baseClass, typeName));
+        }
+        writer.println("}");
     }
 
     private static void defineType(PrintWriter writer, String baseClass, String className, String fields) {
@@ -60,6 +79,15 @@ public class Generator {
 
         writer.println("\t\t}");
         // constructor ends
+
+        // visitor class
+        writer.println();
+        writer.println("\t\t@Override");
+        writer.println("\t\t<R> R accept(Visitor<R> visitor) {");
+        writer.println(String.format("\t\t\treturn visitor.visit%s(this);", className));
+        writer.println("\t\t}");
+        writer.println();
+        // visitor ends
 
         for (String field: fieldsList) {
             String[] fieldDescription = field.trim().split(" ");
