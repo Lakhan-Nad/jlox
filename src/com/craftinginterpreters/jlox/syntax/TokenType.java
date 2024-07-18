@@ -1,4 +1,4 @@
-package com.craftinginterpreters.jlox.scanner;
+package com.craftinginterpreters.jlox.syntax;
 
 public enum TokenType {
     // Single-character tokens.

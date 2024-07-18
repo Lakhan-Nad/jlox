@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 
 import com.craftinginterpreters.jlox.Constants;
+import com.craftinginterpreters.jlox.syntax.Token;
+import com.craftinginterpreters.jlox.syntax.TokenType;
 import com.craftinginterpreters.jlox.tools.ErrorHandler;
 import com.craftinginterpreters.jlox.tools.Logger;
 

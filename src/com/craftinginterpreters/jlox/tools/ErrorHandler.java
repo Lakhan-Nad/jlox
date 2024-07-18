@@ -1,7 +1,7 @@
 package com.craftinginterpreters.jlox.tools;
 
-import com.craftinginterpreters.jlox.scanner.Token;
-import com.craftinginterpreters.jlox.scanner.TokenType;
+import com.craftinginterpreters.jlox.syntax.Token;
+import com.craftinginterpreters.jlox.syntax.TokenType;
 
 public class ErrorHandler {
     public static boolean hadError;

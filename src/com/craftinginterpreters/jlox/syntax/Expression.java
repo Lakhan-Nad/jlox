@@ -1,7 +1,5 @@
 package com.craftinginterpreters.jlox.syntax;
 
-import com.craftinginterpreters.jlox.scanner.Token;
-
 public abstract class Expression {
 	abstract <R> R accept(Visitor<R> visitor);
 
