@@ -1,7 +1,9 @@
 package com.craftinginterpreters.jlox.syntax;
 
+import java.util.List;
+
 public abstract class Expression {
-	abstract <R> R accept(Visitor<R> visitor);
+	public abstract <R> R accept(Visitor<R> visitor);
 
 	public static class Binary extends Expression {
 		public Binary(Expression left, Token op, Expression right) {
@@ -11,7 +13,7 @@ public abstract class Expression {
 		}
 
 		@Override
-		<R> R accept(Visitor<R> visitor) {
+		public <R> R accept(Visitor<R> visitor) {
 			return visitor.visitBinary(this);
 		}
 
@@ -27,7 +29,7 @@ public abstract class Expression {
 		}
 
 		@Override
-		<R> R accept(Visitor<R> visitor) {
+		public <R> R accept(Visitor<R> visitor) {
 			return visitor.visitUnary(this);
 		}
 
@@ -41,7 +43,7 @@ public abstract class Expression {
 		}
 
 		@Override
-		<R> R accept(Visitor<R> visitor) {
+		public <R> R accept(Visitor<R> visitor) {
 			return visitor.visitGrouping(this);
 		}
 
@@ -54,22 +56,37 @@ public abstract class Expression {
 		}
 
 		@Override
-		<R> R accept(Visitor<R> visitor) {
+		public <R> R accept(Visitor<R> visitor) {
 			return visitor.visitLiteral(this);
 		}
 
 		final Object value;
 	}
+
+	public static class CommaSeperated extends Expression {
+		public CommaSeperated(List<Expression> expressions) {
+			this.expressions = expressions;
+		}
+
+		@Override
+		public <R> R accept(Visitor<R> visitor) {
+			return visitor.visitCommaSeperated(this);
+		}
+
+		final List<Expression> expressions;
+	}
+	public interface Visitor<T> {
+
+		T visitBinary(Expression.Binary obj);
+
+		T visitUnary(Expression.Unary obj);
+
+		T visitGrouping(Expression.Grouping obj);
+
+		T visitLiteral(Expression.Literal obj);
+
+		T visitCommaSeperated(Expression.CommaSeperated obj);
+}
 }
 
 
-interface Visitor<T> {
-
-	T visitBinary(Expression.Binary obj);
-
-	T visitUnary(Expression.Unary obj);
-
-	T visitGrouping(Expression.Grouping obj);
-
-	T visitLiteral(Expression.Literal obj);
-}

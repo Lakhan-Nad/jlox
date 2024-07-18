@@ -1,11 +1,26 @@
 package com.craftinginterpreters.jlox.parser;
 
 import java.util.List;
+import java.util.ArrayList;
 
 import com.craftinginterpreters.jlox.syntax.Expression;
 import com.craftinginterpreters.jlox.syntax.Token;
 import com.craftinginterpreters.jlox.syntax.TokenType;
 import com.craftinginterpreters.jlox.tools.ErrorHandler;
+
+
+/**
+ * 
+ * expression     → equality ( "," expression )* ;
+ * equality       → comparison ( ( "!=" | "==" ) comparison )* ;
+ * comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+ * term           → factor ( ( "-" | "+" ) factor )* ;
+ * factor         → unary ( ( "/" | "*" ) unary )* ;
+ * unary          → ( "!" | "-" ) unary
+                    | primary ;
+ * primary        → NUMBER | STRING | "true" | "false" | "nil"
+                    | "(" expression ")" ;
+ */
 
 public class Parser {
     private final List<Token> tokens;
@@ -25,7 +40,16 @@ public class Parser {
     }
 
     private Expression expression() {
-        return equality();
+        List<Expression> expressions = new ArrayList<Expression>();
+        Expression expr = equality();
+        while (match(TokenType.COMMA)) {
+            expressions.add(expression());
+        }
+        if (expressions.size() == 0) {
+            return expr;
+        }
+        expressions.add(0, expr);
+        return new Expression.CommaSeperated(expressions);
     }
 
     private Expression equality() {

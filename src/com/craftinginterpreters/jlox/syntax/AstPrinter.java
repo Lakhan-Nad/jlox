@@ -1,9 +1,11 @@
 package com.craftinginterpreters.jlox.syntax;
 
 import com.craftinginterpreters.jlox.syntax.Expression.Binary;
+import com.craftinginterpreters.jlox.syntax.Expression.CommaSeperated;
 import com.craftinginterpreters.jlox.syntax.Expression.Grouping;
 import com.craftinginterpreters.jlox.syntax.Expression.Literal;
 import com.craftinginterpreters.jlox.syntax.Expression.Unary;
+import com.craftinginterpreters.jlox.syntax.Expression.Visitor;
 
 /**
  * AstPrinter
@@ -11,6 +13,7 @@ import com.craftinginterpreters.jlox.syntax.Expression.Unary;
 public class AstPrinter implements Visitor<String> {
 
     final Expression expr;
+
     public AstPrinter(Expression expr) {
         this.expr = expr;
     }
@@ -37,8 +40,20 @@ public class AstPrinter implements Visitor<String> {
         return obj.value.toString();
     }
 
-    public String print() { 
+    public String print() {
         return this.expr.accept(this);
+    }
+
+    @Override
+    public String visitCommaSeperated(CommaSeperated obj) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < obj.expressions.size(); i++) {
+            if (i > 0) {
+                builder.append(", ");
+            }
+            builder.append(obj.expressions.get(i).accept(this));
+        }
+        return builder.toString();
     }
 
 }
