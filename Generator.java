@@ -18,7 +18,9 @@ public class Generator {
                         "Binary : Expression left, Token op, Expression right",
                         "Unary : Token op, Expression expr",
                         "Grouping : Expression expr",
-                        "Literal : Object value"));
+                        "Literal : Object value",
+                        "CommaSeperated: List<Expression> expressions"
+                        ));
     }
 
     private static void defineAst(
@@ -31,7 +33,11 @@ public class Generator {
 
         writer.println(packageName + ";");
         writer.println();
+
         //imports
+        writer.println("import java.util.List;");
+        // end imports
+
         writer.println();
         writer.println("public abstract class " + baseClass + " {");
 
@@ -44,20 +50,20 @@ public class Generator {
             defineType(writer, baseClass, className, fields);
         }
 
+        defineVisitor(writer, "Visitor", baseClass, types);
+
         writer.println("}");
         writer.print("\n\n");
-
-        defineVisitor(writer, "Visitor", baseClass, types);
         
         writer.close();
     }
 
     private static void defineVisitor(PrintWriter writer, String string, String baseClass, List<String> types) {
-        writer.println("public interface Visitor<T> {");
+        writer.println("\tpublic interface Visitor<T> {");
         for (String type: types) {
             writer.println();
             String typeName = type.split(":")[0].trim();
-            writer.println(String.format("\tT visit%s(%s.%s obj);", typeName, baseClass, typeName));
+            writer.println(String.format("\t\tT visit%s(%s.%s obj);", typeName, baseClass, typeName));
         }
         writer.println("}");
     }
@@ -83,7 +89,7 @@ public class Generator {
         // visitor class
         writer.println();
         writer.println("\t\t@Override");
-        writer.println("\t\t<R> R accept(Visitor<R> visitor) {");
+        writer.println("\t\tpublic <R> R accept(Visitor<R> visitor) {");
         writer.println(String.format("\t\t\treturn visitor.visit%s(this);", className));
         writer.println("\t\t}");
         writer.println();
