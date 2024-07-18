@@ -33,10 +33,10 @@ public class Generator {
         writer.println();
         //imports
         writer.println();
-        writer.println("abstract class " + baseClass + " {");
+        writer.println("public abstract class " + baseClass + " {");
 
         // define base accept class
-        writer.println("\tabstract <R> R accept(Visitor<R> visitor);");
+        writer.println("\tpublic abstract <R> R accept(Visitor<R> visitor);");
 
         for (String type : types) {
             String className = type.split(":")[0].trim();
@@ -53,7 +53,7 @@ public class Generator {
     }
 
     private static void defineVisitor(PrintWriter writer, String string, String baseClass, List<String> types) {
-        writer.println("interface Visitor<T> {");
+        writer.println("public interface Visitor<T> {");
         for (String type: types) {
             writer.println();
             String typeName = type.split(":")[0].trim();
@@ -66,10 +66,10 @@ public class Generator {
         writer.println();
 
         // class
-        writer.println(String.format("\tstatic class %s extends %s {", className, baseClass));
+        writer.println(String.format("\tpublic static class %s extends %s {", className, baseClass));
 
         // constructor
-        writer.println(String.format("\t\t%s(%s) {", className, fields));
+        writer.println(String.format("\t\tpublic %s(%s) {", className, fields));
 
         String[] fieldsList = fields.split(",");
         for (String field: fieldsList) {

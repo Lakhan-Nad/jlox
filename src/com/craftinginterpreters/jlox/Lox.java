@@ -9,6 +9,9 @@ import java.nio.file.Paths;
 import java.util.List;
 import com.craftinginterpreters.jlox.scanner.Scanner;
 import com.craftinginterpreters.jlox.scanner.Token;
+import com.craftinginterpreters.jlox.syntax.AstPrinter;
+import com.craftinginterpreters.jlox.syntax.Expression;
+import com.craftinginterpreters.jlox.parser.Parser;
 import com.craftinginterpreters.jlox.tools.ErrorHandler;
 import com.craftinginterpreters.jlox.tools.Logger;
 
@@ -16,7 +19,7 @@ public class Lox {
   public static void main(String[] args) throws IOException {
     if (args.length > 1) {
       System.out.println("Usage: jlox [script]");
-      System.exit(64); 
+      System.exit(64);
     } else if (args.length == 1) {
       runFile(args[0]);
     } else {
@@ -28,17 +31,19 @@ public class Lox {
     byte[] bytes = Files.readAllBytes(Paths.get(path));
     run(new String(bytes, Charset.defaultCharset()));
     // Indicate an error in the exit code.
-    if (ErrorHandler.hadError) System.exit(65);
+    if (ErrorHandler.hadError)
+      System.exit(65);
   }
 
   private static void runPrompt() throws IOException {
     InputStreamReader input = new InputStreamReader(System.in);
     BufferedReader reader = new BufferedReader(input);
 
-    for (;;) { 
+    for (;;) {
       System.out.print("> ");
       String line = reader.readLine();
-      if (line == null) break;
+      if (line == null)
+        break;
       run(line);
       ErrorHandler.hadError = false;
     }
@@ -48,7 +53,14 @@ public class Lox {
     Scanner scanner = new Scanner(source);
     List<Token> tokens = scanner.scanTokens();
 
+    if (ErrorHandler.hadError) {
+      return;
+    }
+
+    Parser parser = new Parser(tokens);
+    Expression expression = parser.parse();
+
     // For now, just print the tokens.
-    Logger.info(String.format("%d tokens found", tokens.size()));
+    Logger.info(new AstPrinter(expression).print());
   }
 }

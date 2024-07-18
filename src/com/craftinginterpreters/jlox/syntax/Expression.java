@@ -2,11 +2,11 @@ package com.craftinginterpreters.jlox.syntax;
 
 import com.craftinginterpreters.jlox.scanner.Token;
 
-abstract class Expression {
+public abstract class Expression {
 	abstract <R> R accept(Visitor<R> visitor);
 
-	static class Binary extends Expression {
-		Binary(Expression left, Token op, Expression right) {
+	public static class Binary extends Expression {
+		public Binary(Expression left, Token op, Expression right) {
 			this.left = left;
 			this.op = op;
 			this.right = right;
@@ -22,8 +22,8 @@ abstract class Expression {
 		final Expression right;
 	}
 
-	static class Unary extends Expression {
-		Unary(Token op, Expression expr) {
+	public static class Unary extends Expression {
+		public Unary(Token op, Expression expr) {
 			this.op = op;
 			this.expr = expr;
 		}
@@ -37,8 +37,8 @@ abstract class Expression {
 		final Expression expr;
 	}
 
-	static class Grouping extends Expression {
-		Grouping(Expression expr) {
+	public static class Grouping extends Expression {
+		public Grouping(Expression expr) {
 			this.expr = expr;
 		}
 
@@ -50,8 +50,8 @@ abstract class Expression {
 		final Expression expr;
 	}
 
-	static class Literal extends Expression {
-		Literal(Object value) {
+	public static class Literal extends Expression {
+		public Literal(Object value) {
 			this.value = value;
 		}
 
