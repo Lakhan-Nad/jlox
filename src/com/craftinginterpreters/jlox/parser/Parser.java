@@ -2,9 +2,9 @@ package com.craftinginterpreters.jlox.parser;
 
 import java.util.List;
 
-import com.craftinginterpreters.jlox.scanner.Token;
-import com.craftinginterpreters.jlox.scanner.TokenType;
 import com.craftinginterpreters.jlox.syntax.Expression;
+import com.craftinginterpreters.jlox.syntax.Token;
+import com.craftinginterpreters.jlox.syntax.TokenType;
 import com.craftinginterpreters.jlox.tools.ErrorHandler;
 
 public class Parser {
