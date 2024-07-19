@@ -1,20 +1,27 @@
 package com.craftinginterpreters.jlox.tools;
 
-import com.craftinginterpreters.jlox.syntax.Token;
+import com.craftinginterpreters.jlox.interpreter.RuntimeError;
+import com.craftinginterpreters.jlox.parser.ParseError;
 import com.craftinginterpreters.jlox.syntax.TokenType;
 
 public class ErrorHandler {
-    public static boolean hadError;
+    public static boolean hadError = false;
+    public static boolean hadRuntimeError = false;
+
+    public static void resetErrors() {
+        ErrorHandler.hadError = false;
+        ErrorHandler.hadRuntimeError = false;
+    }
 
     public static void error(int line, String message) {
         report(line, "", message);
     }
 
-    public static void error(Token token, String message) {
-        if (token.type == TokenType.EOF) {
-            report(token.line, " at end", message);
+    public static void parseError(ParseError error) {
+        if (error.token.type == TokenType.EOF) {
+            report(error.token.line, " at end", error.getMessage());
         } else {
-            report(token.line, " at '" + token.lexeme + "'", message);
+            report(error.token.line, " at '" + error.token.lexeme + "'", error.getMessage());
         }
     }
 
@@ -23,5 +30,10 @@ public class ErrorHandler {
         System.err.println(
                 "[line " + line + "] Error" + where + ": " + message);
         hadError = true;
+    }
+
+    public static void runtimeError(RuntimeError error) {
+        System.err.println(error.getMessage() + "\n[line " + error.token.line + "]");
+        hadRuntimeError = true;
     }
 }

@@ -1,5 +1,6 @@
-package com.craftinginterpreters.jlox.syntax;
+package com.craftinginterpreters.jlox.tools;
 
+import com.craftinginterpreters.jlox.syntax.Expression;
 import com.craftinginterpreters.jlox.syntax.Expression.Binary;
 import com.craftinginterpreters.jlox.syntax.Expression.CommaSeperated;
 import com.craftinginterpreters.jlox.syntax.Expression.Grouping;
@@ -20,17 +21,17 @@ public class AstPrinter implements Visitor<String> {
 
     @Override
     public String visitBinary(Binary obj) {
-        return obj.left.accept(this) + " " + obj.op.lexeme + " " + obj.right.accept(this);
+        return "( binary " + obj.left.accept(this) + " " + obj.op.lexeme + " " + obj.right.accept(this) + " )";
     }
 
     @Override
     public String visitUnary(Unary obj) {
-        return obj.op.lexeme + " " + obj.expr.accept(this);
+        return "( unary " + obj.op.lexeme + " " + obj.expr.accept(this) + " )";
     }
 
     @Override
     public String visitGrouping(Grouping obj) {
-        return "(" + obj.expr.accept(this) + ")";
+        return "( group " + obj.expr.accept(this) + ")";
     }
 
     @Override
@@ -53,7 +54,7 @@ public class AstPrinter implements Visitor<String> {
             }
             builder.append(obj.expressions.get(i).accept(this));
         }
-        return builder.toString();
+        return "( commaSeperated " + builder.toString() + " )";
     }
 
 }

@@ -95,7 +95,7 @@ public class Scanner {
                 advance();
                 if (peek() == '*') {
                     advance();
-                    addToken(TokenType.POWER);
+                    addToken(TokenType.STAR_STAR);
                 } else {
                     addToken(TokenType.STAR);
                 }

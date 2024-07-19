@@ -8,18 +8,17 @@ import com.craftinginterpreters.jlox.syntax.Token;
 import com.craftinginterpreters.jlox.syntax.TokenType;
 import com.craftinginterpreters.jlox.tools.ErrorHandler;
 
-
 /**
  * 
- * expression     → equality ( "," expression )* ;
- * equality       → comparison ( ( "!=" | "==" ) comparison )* ;
- * comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
- * term           → factor ( ( "-" | "+" ) factor )* ;
- * factor         → unary ( ( "/" | "*" ) unary )* ;
- * unary          → ( "!" | "-" ) unary
-                    | primary ;
- * primary        → NUMBER | STRING | "true" | "false" | "nil"
-                    | "(" expression ")" ;
+ * expression → equality ( "," expression )* ;
+ * equality → comparison ( ( "!=" | "==" ) comparison )* ;
+ * comparison → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+ * term → factor ( ( "-" | "+" ) factor )* ;
+ * factor → unary ( ( "/" | "*" ) unary )* ;
+ * unary → ( "!" | "-" ) unary
+ * | primary ;
+ * primary → NUMBER | STRING | "true" | "false" | "nil"
+ * | "(" expression ")" ;
  */
 
 public class Parser {
@@ -34,7 +33,7 @@ public class Parser {
     public Expression parse() {
         try {
             return expression();
-        } catch(ParseError error) {
+        } catch (ParseError error) {
             return null;
         }
     }
@@ -84,7 +83,7 @@ public class Parser {
 
     private Expression factor() {
         Expression expr = unary();
-        while (match(TokenType.SLASH, TokenType.STAR, TokenType.POWER)) {
+        while (match(TokenType.SLASH, TokenType.STAR, TokenType.STAR_STAR)) {
             Token op = previous();
             Expression right = factor();
             expr = new Expression.Binary(expr, op, right);
@@ -102,9 +101,12 @@ public class Parser {
     }
 
     private Expression primary() {
-        if (match(TokenType.FALSE)) return new Expression.Literal(false);
-        if (match(TokenType.TRUE)) return new Expression.Literal(true);
-        if (match(TokenType.NIL)) return new Expression.Literal(null);
+        if (match(TokenType.FALSE))
+            return new Expression.Literal(false);
+        if (match(TokenType.TRUE))
+            return new Expression.Literal(true);
+        if (match(TokenType.NIL))
+            return new Expression.Literal(null);
 
         if (match(TokenType.NUMBER, TokenType.STRING)) {
             return new Expression.Literal(previous().literal);
@@ -120,38 +122,41 @@ public class Parser {
 
     private void synchronize() {
         advance();
-    
+
         while (!isAtEnd()) {
-          if (previous().type == TokenType.SEMICOLON) return;
-    
-          switch (peek().type) {
-            case CLASS:
-            case FUN:
-            case VAR:
-            case FOR:
-            case IF:
-            case WHILE:
-            case PRINT:
-            case RETURN:
-              return;
-            default:
-                break;
-          }
-    
-          advance();
+            if (previous().type == TokenType.SEMICOLON)
+                return;
+
+            switch (peek().type) {
+                case CLASS:
+                case FUN:
+                case VAR:
+                case FOR:
+                case IF:
+                case WHILE:
+                case PRINT:
+                case RETURN:
+                    return;
+                default:
+                    break;
+            }
+
+            advance();
         }
-      }
+    }
 
     // helpers
 
     private Token consume(TokenType type, String message) throws ParseError {
-        if (check(type)) return advance();
+        if (check(type))
+            return advance();
         throw error(peek(), message);
     }
 
     private ParseError error(Token token, String message) {
-        ErrorHandler.error(token, message);
-        return new ParseError(message);
+        ParseError err = new ParseError(token, message);
+        ErrorHandler.parseError(err);
+        return err;
     }
 
     private Token previous() {

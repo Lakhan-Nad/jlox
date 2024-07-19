@@ -9,7 +9,7 @@ public enum TokenType {
     BANG, BANG_EQUAL,
     EQUAL, EQUAL_EQUAL,
     GREATER, GREATER_EQUAL,
-    LESS, LESS_EQUAL, POWER,
+    LESS, LESS_EQUAL, STAR_STAR,
     AMPERSAND, SINGLE_OR,
 
     // Literals.

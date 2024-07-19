@@ -17,9 +17,9 @@ public abstract class Expression {
 			return visitor.visitBinary(this);
 		}
 
-		final Expression left;
-		final Token op;
-		final Expression right;
+		public final Expression left;
+		public final Token op;
+		public final Expression right;
 	}
 
 	public static class Unary extends Expression {
@@ -33,8 +33,8 @@ public abstract class Expression {
 			return visitor.visitUnary(this);
 		}
 
-		final Token op;
-		final Expression expr;
+		public final Token op;
+		public final Expression expr;
 	}
 
 	public static class Grouping extends Expression {
@@ -47,7 +47,7 @@ public abstract class Expression {
 			return visitor.visitGrouping(this);
 		}
 
-		final Expression expr;
+		public final Expression expr;
 	}
 
 	public static class Literal extends Expression {
@@ -60,7 +60,7 @@ public abstract class Expression {
 			return visitor.visitLiteral(this);
 		}
 
-		final Object value;
+		public final Object value;
 	}
 
 	public static class CommaSeperated extends Expression {
@@ -73,7 +73,7 @@ public abstract class Expression {
 			return visitor.visitCommaSeperated(this);
 		}
 
-		final List<Expression> expressions;
+		public final List<Expression> expressions;
 	}
 	public interface Visitor<T> {
 
