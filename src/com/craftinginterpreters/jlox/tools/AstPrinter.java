@@ -1,22 +1,34 @@
 package com.craftinginterpreters.jlox.tools;
 
+import java.util.List;
+import java.util.ArrayList;
 import com.craftinginterpreters.jlox.syntax.Expression;
+import com.craftinginterpreters.jlox.syntax.Expression.Assign;
 import com.craftinginterpreters.jlox.syntax.Expression.Binary;
 import com.craftinginterpreters.jlox.syntax.Expression.CommaSeperated;
 import com.craftinginterpreters.jlox.syntax.Expression.Grouping;
 import com.craftinginterpreters.jlox.syntax.Expression.Literal;
 import com.craftinginterpreters.jlox.syntax.Expression.Unary;
-import com.craftinginterpreters.jlox.syntax.Expression.Visitor;
+import com.craftinginterpreters.jlox.syntax.Expression.Variable;
+import com.craftinginterpreters.jlox.syntax.Statement;
+import com.craftinginterpreters.jlox.syntax.Statement.Block;
+import com.craftinginterpreters.jlox.syntax.Statement.Expr;
+import com.craftinginterpreters.jlox.syntax.Statement.Print;
+import com.craftinginterpreters.jlox.syntax.Statement.Var;
 
 /**
  * AstPrinter
  */
-public class AstPrinter implements Visitor<String> {
+public class AstPrinter implements Expression.Visitor<String>, Statement.Visitor<String> {
+    public AstPrinter() {
+    }
 
-    final Expression expr;
+    public String print(Expression expr) {
+        return expr.accept(this);
+    }
 
-    public AstPrinter(Expression expr) {
-        this.expr = expr;
+    public String print(Statement stmt) {
+        return stmt.accept(this);
     }
 
     @Override
@@ -41,10 +53,6 @@ public class AstPrinter implements Visitor<String> {
         return obj.value.toString();
     }
 
-    public String print() {
-        return this.expr.accept(this);
-    }
-
     @Override
     public String visitCommaSeperated(CommaSeperated obj) {
         StringBuilder builder = new StringBuilder();
@@ -55,6 +63,41 @@ public class AstPrinter implements Visitor<String> {
             builder.append(obj.expressions.get(i).accept(this));
         }
         return "( commaSeperated " + builder.toString() + " )";
+    }
+
+    @Override
+    public String visitVariable(Variable obj) {
+        return "( var " + obj.name.lexeme + " )";
+    }
+
+    @Override
+    public String visitAssign(Assign obj) {
+        return "( assign " + obj.name.lexeme + " = " + obj.value.accept(this) + " )";
+    }
+
+    @Override
+    public String visitExpr(Expr obj) {
+        return "[ expr " + obj.expr.accept(this) + " ]"; 
+    }
+
+    @Override
+    public String visitPrint(Print obj) {
+        return "[ print " + obj.expr.accept(this) + " ]";
+    }
+
+    @Override
+    public String visitVar(Var obj) {
+        String initlializer = obj.initializer == null ? "" : " = " + obj.initializer.accept(this);
+        return "[ var " + obj.name.lexeme + initlializer  + " ]";
+    }
+
+    @Override
+    public String visitBlock(Block obj) {
+        List<String> statements = new ArrayList<>();
+        for (Statement stmt: obj.stmts) {
+            statements.add(stmt.accept(this));
+        }
+        return "{ block " + String.join("\n ", statements) + " }";
     }
 
 }

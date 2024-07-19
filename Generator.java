@@ -15,12 +15,20 @@ public class Generator {
         defineAst(outputDir,
                 "package com.craftinginterpreters.jlox.syntax",
                 "Expression", Arrays.asList(
+                        "Assign: Token name, Expression value",
                         "Binary : Expression left, Token op, Expression right",
                         "Unary : Token op, Expression expr",
                         "Grouping : Expression expr",
                         "Literal : Object value",
-                        "CommaSeperated: List<Expression> expressions"
-                        ));
+                        "CommaSeperated: List<Expression> expressions",
+                        "Variable: Token name"));
+        defineAst(outputDir, 
+        "package com.craftinginterpreters.jlox.syntax", 
+        "Statement", Arrays.asList(
+                "Block: List<Statement> stmts",
+                "Expr: Expression expr",
+                "Print: Expression expr",
+                "Var: Token name, Expression initializer"));
     }
 
     private static void defineAst(
@@ -34,7 +42,7 @@ public class Generator {
         writer.println(packageName + ";");
         writer.println();
 
-        //imports
+        // imports
         writer.println("import java.util.List;");
         // end imports
 
@@ -54,18 +62,18 @@ public class Generator {
 
         writer.println("}");
         writer.print("\n\n");
-        
+
         writer.close();
     }
 
     private static void defineVisitor(PrintWriter writer, String string, String baseClass, List<String> types) {
         writer.println("\tpublic interface Visitor<T> {");
-        for (String type: types) {
+        for (String type : types) {
             writer.println();
             String typeName = type.split(":")[0].trim();
             writer.println(String.format("\t\tT visit%s(%s.%s obj);", typeName, baseClass, typeName));
         }
-        writer.println("}");
+        writer.println("\t}");
     }
 
     private static void defineType(PrintWriter writer, String baseClass, String className, String fields) {
@@ -78,7 +86,7 @@ public class Generator {
         writer.println(String.format("\t\tpublic %s(%s) {", className, fields));
 
         String[] fieldsList = fields.split(",");
-        for (String field: fieldsList) {
+        for (String field : fieldsList) {
             String name = field.trim().split(" ")[1].trim();
             writer.println(String.format("\t\t\tthis.%s = %s;", name, name));
         }
@@ -95,7 +103,7 @@ public class Generator {
         writer.println();
         // visitor ends
 
-        for (String field: fieldsList) {
+        for (String field : fieldsList) {
             String[] fieldDescription = field.trim().split(" ");
             String type = fieldDescription[0].trim();
             String name = fieldDescription[1].trim();
@@ -103,6 +111,6 @@ public class Generator {
         }
 
         writer.println("\t}");
-        //class ends
+        // class ends
     }
 }

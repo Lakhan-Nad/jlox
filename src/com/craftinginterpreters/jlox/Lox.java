@@ -8,13 +8,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import com.craftinginterpreters.jlox.scanner.Scanner;
-import com.craftinginterpreters.jlox.syntax.Expression;
+import com.craftinginterpreters.jlox.syntax.Statement;
 import com.craftinginterpreters.jlox.syntax.Token;
 import com.craftinginterpreters.jlox.interpreter.Interpreter;
 import com.craftinginterpreters.jlox.parser.Parser;
-import com.craftinginterpreters.jlox.tools.AstPrinter;
 import com.craftinginterpreters.jlox.tools.ErrorHandler;
-import com.craftinginterpreters.jlox.tools.Logger;
 
 public class Lox {
   public static Interpreter interpreter = new Interpreter();
@@ -61,12 +59,12 @@ public class Lox {
     }
 
     Parser parser = new Parser(tokens);
-    Expression expression = parser.parse();
+    List<Statement> statements = parser.parse();
 
     if (ErrorHandler.hadError) {
       return;
     }
-    Logger.info(new AstPrinter(expression).print());
-    interpreter.interpret(expression);
+
+    interpreter.interpret(statements);
   }
 }

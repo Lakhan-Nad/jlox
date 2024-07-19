@@ -5,6 +5,21 @@ import java.util.List;
 public abstract class Expression {
 	public abstract <R> R accept(Visitor<R> visitor);
 
+	public static class Assign extends Expression {
+		public Assign(Token name, Expression value) {
+			this.name = name;
+			this.value = value;
+		}
+
+		@Override
+		public <R> R accept(Visitor<R> visitor) {
+			return visitor.visitAssign(this);
+		}
+
+		public final Token name;
+		public final Expression value;
+	}
+
 	public static class Binary extends Expression {
 		public Binary(Expression left, Token op, Expression right) {
 			this.left = left;
@@ -75,7 +90,22 @@ public abstract class Expression {
 
 		public final List<Expression> expressions;
 	}
+
+	public static class Variable extends Expression {
+		public Variable(Token name) {
+			this.name = name;
+		}
+
+		@Override
+		public <R> R accept(Visitor<R> visitor) {
+			return visitor.visitVariable(this);
+		}
+
+		public final Token name;
+	}
 	public interface Visitor<T> {
+
+		T visitAssign(Expression.Assign obj);
 
 		T visitBinary(Expression.Binary obj);
 
@@ -86,7 +116,9 @@ public abstract class Expression {
 		T visitLiteral(Expression.Literal obj);
 
 		T visitCommaSeperated(Expression.CommaSeperated obj);
-}
+
+		T visitVariable(Expression.Variable obj);
+	}
 }
 
 

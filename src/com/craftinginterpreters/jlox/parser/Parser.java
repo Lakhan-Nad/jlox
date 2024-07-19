@@ -4,21 +4,31 @@ import java.util.List;
 import java.util.ArrayList;
 
 import com.craftinginterpreters.jlox.syntax.Expression;
+import com.craftinginterpreters.jlox.syntax.Statement;
 import com.craftinginterpreters.jlox.syntax.Token;
 import com.craftinginterpreters.jlox.syntax.TokenType;
 import com.craftinginterpreters.jlox.tools.ErrorHandler;
 
 /**
  * 
- * expression → equality ( "," expression )* ;
+ * statement → printStatement
+ *           | varDeclaration
+ *           | expression
+ *           | blockStatement ;
+ * varDeclaration → "var" identifierDeclaration ( "," identifierDeclaration) ;
+ * identifierDeclaration → IDENTIFIER ("=" expression)? ;
+ * expression → assignment ( "," expression )* ;
+ * assignment → IDENTIFIER "=" expression
+ *            | equality  ;
  * equality → comparison ( ( "!=" | "==" ) comparison )* ;
  * comparison → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
  * term → factor ( ( "-" | "+" ) factor )* ;
  * factor → unary ( ( "/" | "*" ) unary )* ;
  * unary → ( "!" | "-" ) unary
- * | primary ;
+ *       | primary ;
  * primary → NUMBER | STRING | "true" | "false" | "nil"
- * | "(" expression ")" ;
+ *         | "(" expression ")"
+ *         | IDENTIFIER ;
  */
 
 public class Parser {
@@ -30,25 +40,86 @@ public class Parser {
         this.current = 0;
     }
 
-    public Expression parse() {
+    public List<Statement> parse() {
         try {
-            return expression();
+            List<Statement> statements = new ArrayList<>();
+            while (!isAtEnd()) {
+                statements.add(statement());
+            }
+            return statements;
         } catch (ParseError error) {
             return null;
         }
     }
 
+    private Statement statement() {
+        try {
+            if (match(TokenType.LEFT_BRACE)) return block();
+            if (match(TokenType.VAR)) return varDeclaration();
+            if (match(TokenType.PRINT)) return printStatement();
+            return expressionStatement();
+        } catch (ParseError error) {
+            synchronize();
+            return null;
+       }
+    }
+
+    private Statement block() {
+        List<Statement> statements = new ArrayList<>();
+        while (!check(TokenType.RIGHT_BRACE) && !isAtEnd()) {
+          statements.add(statement());
+        }
+        consume(TokenType.RIGHT_BRACE, "Expect '}' after block.");
+        return new Statement.Block(statements);
+    }
+
+    private Statement varDeclaration() {
+        Token name = consume(TokenType.IDENTIFIER, "Expect variable name.");
+        Expression initializer = null;
+        if (match(TokenType.EQUAL)) {
+            initializer = expression();
+        }
+        consume(TokenType.SEMICOLON, "Expect ';' after variable declaration.");
+        return new Statement.Var(name, initializer);
+    }
+
+    private Statement expressionStatement() {
+        Expression expr = expression();
+        consume(TokenType.SEMICOLON, "Expect ';' at end of statement");
+        return new Statement.Expr(expr);
+    }
+
+    private Statement printStatement() {
+        Expression expr = expression();
+        consume(TokenType.SEMICOLON, "Expect ';' at end of print statement");
+        return new Statement.Print(expr);
+    }
+
     private Expression expression() {
         List<Expression> expressions = new ArrayList<Expression>();
-        Expression expr = equality();
+        Expression expr = assignment();
         while (match(TokenType.COMMA)) {
-            expressions.add(expression());
+            expressions.add(assignment());
         }
         if (expressions.size() == 0) {
             return expr;
         }
         expressions.add(0, expr);
         return new Expression.CommaSeperated(expressions);
+    }
+
+    private Expression assignment() {
+        Expression expr = equality();
+        if (match(TokenType.EQUAL)) {
+            Token equals = previous();
+            Expression value = assignment();
+            if (expr instanceof Expression.Variable) {
+                Token name = ((Expression.Variable) expr).name;
+                return new Expression.Assign(name, value);
+            }
+            error(equals, "Invalid assignment target.");
+        }
+        return expr;
     }
 
     private Expression equality() {
@@ -110,6 +181,10 @@ public class Parser {
 
         if (match(TokenType.NUMBER, TokenType.STRING)) {
             return new Expression.Literal(previous().literal);
+        }
+
+        if (match(TokenType.IDENTIFIER)) {
+            return new Expression.Variable(previous());
         }
 
         if (match(TokenType.LEFT_PAREN)) {
