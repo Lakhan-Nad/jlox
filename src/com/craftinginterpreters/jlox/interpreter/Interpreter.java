@@ -140,7 +140,7 @@ public class Interpreter implements Expression.Visitor<Object> {
 
     private Object evaluate(Expression expr) {
         Object value = expr.accept(this);
-        Logger.trace(String.format("%s evaluated to - %s", new AstPrinter(expr).print(), stringify(value)));
+        Logger.trace(String.format("%s evaluated to: %s", new AstPrinter(expr).print(), stringify(value)));
         return value;
     }
 

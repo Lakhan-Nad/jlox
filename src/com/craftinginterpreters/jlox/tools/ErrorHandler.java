@@ -33,7 +33,7 @@ public class ErrorHandler {
     }
 
     public static void runtimeError(RuntimeError error) {
-        System.err.println(error.getMessage() + "\n[line " + error.token.line + "]");
+        System.err.println("[line " + error.token.line + "] Error: " + error.getMessage() + " near token " + error.token.lexeme);
         hadRuntimeError = true;
     }
 }
