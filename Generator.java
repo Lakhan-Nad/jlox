@@ -99,7 +99,7 @@ public class Generator {
             String[] fieldDescription = field.trim().split(" ");
             String type = fieldDescription[0].trim();
             String name = fieldDescription[1].trim();
-            writer.println(String.format("\t\tfinal %s %s;", type, name));
+            writer.println(String.format("\t\tpublic final %s %s;", type, name));
         }
 
         writer.println("\t}");
