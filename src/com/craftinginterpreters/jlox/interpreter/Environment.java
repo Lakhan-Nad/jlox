@@ -8,7 +8,23 @@ import java.util.HashMap;
 
 public class Environment {
     final Environment enclosing;
-    private final Map<String, Object> values = new HashMap<>();
+
+    private class ValueWrapper {
+        public boolean assigned;
+        public Object value;
+
+        ValueWrapper(Object value) {
+            this.assigned = true;
+            this.value = value;
+        }
+
+        ValueWrapper() {
+            this.assigned = false;
+            this.value = null;
+        }
+    }
+
+    private final Map<String, ValueWrapper> values = new HashMap<>();
 
     public Environment(Environment parent) {
         this.enclosing = parent;
@@ -20,7 +36,11 @@ public class Environment {
 
     public Object get(Token name) {
         if (values.containsKey(name.lexeme)) {
-            return values.get(name.lexeme);
+            ValueWrapper val = values.get(name.lexeme);
+            if (!val.assigned) {
+                throw new RuntimeError(name, "variable is not assigned yet.");
+            }
+            return val.value;
         }
         if (enclosing != null) {
             return enclosing.get(name);
@@ -30,9 +50,11 @@ public class Environment {
 
     public void assign(Token name, Object value) {
         if (values.containsKey(name.lexeme)) {
-            values.put(name.lexeme, value);
+            ValueWrapper val = values.get(name.lexeme);
+            val.assigned = true;
+            val.value = value;
             return;
-        } 
+        }
         if (enclosing != null) {
             enclosing.assign(name, value);
             return;
@@ -44,13 +66,13 @@ public class Environment {
         if (values.containsKey(name.lexeme)) {
             throw new RuntimeError(name, "re definition of already present reference");
         }
-        values.put(name.lexeme, value);
+        values.put(name.lexeme, new ValueWrapper(value));
     }
 
     public void declare(Token name) {
         if (values.containsKey(name.lexeme)) {
             throw new RuntimeError(name, "re definition of already present reference");
         }
-        values.put(name.lexeme, null);
+        values.put(name.lexeme, new ValueWrapper());
     }
 }
