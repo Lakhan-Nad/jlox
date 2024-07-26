@@ -1,7 +1,9 @@
 package com.craftinginterpreters.jlox.parser;
 
 import java.util.List;
+import java.util.Stack;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import com.craftinginterpreters.jlox.syntax.Expression;
 import com.craftinginterpreters.jlox.syntax.Statement;
@@ -13,13 +15,24 @@ import com.craftinginterpreters.jlox.tools.ErrorHandler;
  * 
  * statement → printStatement
  *           | varDeclaration
- *           | expression
- *           | blockStatement ;
- * varDeclaration → "var" identifierDeclaration ( "," identifierDeclaration) ;
- * identifierDeclaration → IDENTIFIER ("=" expression)? ;
+ *           | expressionStatement
+ *           | blockStatement
+ *           | ifStatement
+ *           | whileStatement 
+ *           | forStatement 
+ *           | breakStatement 
+ *           | continueStatament ;
+ * printStatement → "print" expression ";" ;
+ * whileStatement → "while" "(" expression ")" statement ;
+ * forStatement → "for" "(" (varDeclaration | expressionStatement | ";" ) expression? ";" expression? ")" statement ;
+ * ifStatement → "if" "(" expression ")" statement ( "else" statement )? ;
+ * expressionStatement → expression ";" ;
+ * varDeclaration → "var" IDENTIFIER ("=" expression)? ";" ;
  * expression → assignment ( "," expression )* ;
  * assignment → IDENTIFIER "=" expression
- *            | equality  ;
+ *            | logic_or  ;
+ * logic_or → logic_and ( ("or" | "||") logic_or ) ;
+ * logic_and → equality ( ("and" | "&&") logic_and ) ;
  * equality → comparison ( ( "!=" | "==" ) comparison )* ;
  * comparison → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
  * term → factor ( ( "-" | "+" ) factor )* ;
@@ -34,10 +47,12 @@ import com.craftinginterpreters.jlox.tools.ErrorHandler;
 public class Parser {
     private final List<Token> tokens;
     private int current;
+    private Stack<Integer> withinLoop;
 
     public Parser(List<Token> tokens) {
         this.tokens = tokens;
         this.current = 0;
+        this.withinLoop = new Stack<>();
     }
 
     public List<Statement> parse() {
@@ -54,6 +69,11 @@ public class Parser {
 
     private Statement statement() {
         try {
+            if (match(TokenType.WHILE)) return whileStatament();
+            if (match(TokenType.FOR)) return forStatement();
+            if (match(TokenType.BREAK)) return breakStatement();
+            if (match(TokenType.CONTINUE)) return continueStatement();
+            if (match(TokenType.IF)) return ifStatement();
             if (match(TokenType.LEFT_BRACE)) return block();
             if (match(TokenType.VAR)) return varDeclaration();
             if (match(TokenType.PRINT)) return printStatement();
@@ -62,6 +82,85 @@ public class Parser {
             synchronize();
             return null;
        }
+    }
+
+    private Statement continueStatement() {
+        if (withinLoop.isEmpty()) {
+            throw error(previous(), "continue cannot be used outside of loops");
+        }
+        consume(TokenType.SEMICOLON, "; is mandatory after continue");
+        return new Statement.Continue();
+    }
+
+    private Statement breakStatement() {
+        if (withinLoop.isEmpty()) {
+            throw error(previous(), "break cannot be used outside of loops");
+        }
+        consume(TokenType.SEMICOLON, "; is mandatory after break");
+        return new Statement.Break();
+    }
+
+    private Statement forStatement() {
+        consume(TokenType.LEFT_PAREN, "missin ( after for");
+        Statement initializer;
+        if (match(TokenType.SEMICOLON)) {
+            initializer = null; // consumed semicolon
+        } else if (match(TokenType.VAR)) {
+            initializer = varDeclaration(); // ends with semicolon, so consumed
+        } else { 
+            initializer = expressionStatement(); // ends with semicolon, so consumed
+        }
+        Expression condition = null;
+        if (!check(TokenType.SEMICOLON)) {
+            condition = expression();
+        }
+        consume(TokenType.SEMICOLON, "expect ; after condition in for");
+        Expression change = null;
+        if (!check(TokenType.RIGHT_PAREN)) {
+            change = expression();
+        }
+        consume(TokenType.RIGHT_PAREN, "expect ) after for");
+        Statement body = statement();
+        if (condition == null) {
+            condition = new Expression.Literal(true);
+        }
+        List<Statement> blocks = new ArrayList<>();
+        blocks.add(body);
+        if (change != null) {
+            blocks.add(new Statement.Expr(change));
+        }
+        Statement whileStatement = new Statement.While(condition, new Statement.Block(blocks));
+        if (initializer != null) {
+            return new Statement.Block(Arrays.asList(initializer, whileStatement));
+        } 
+        return whileStatement;
+    }
+
+    private Statement whileStatament() {
+       consume(TokenType.LEFT_PAREN, "missin ( after while");
+       Expression condition;
+       if (!check(TokenType.RIGHT_PAREN)) {
+        condition = expression();
+       } else {
+        condition = new Expression.Literal(true);
+       }
+       consume(TokenType.RIGHT_PAREN, "missing ) after while and condition");
+       withinLoop.push(1);
+       Statement body = statement();
+       withinLoop.pop();
+       return new Statement.While(condition, body);
+    }
+
+    private Statement ifStatement() {
+        consume(TokenType.LEFT_PAREN, "missing ( after if");
+        Expression ifCondition = expression();
+        consume(TokenType.RIGHT_PAREN, "missing ) after if and condition");
+        Statement thenStatement = statement();
+        Statement elseStatement = null;
+        if (match(TokenType.ELSE)) {
+            elseStatement = statement();
+        }
+        return new Statement.IfElse(ifCondition, thenStatement, elseStatement);
     }
 
     private Statement block() {
@@ -109,7 +208,7 @@ public class Parser {
     }
 
     private Expression assignment() {
-        Expression expr = equality();
+        Expression expr = or();
         if (match(TokenType.EQUAL)) {
             Token equals = previous();
             Expression value = assignment();
@@ -118,6 +217,26 @@ public class Parser {
                 return new Expression.Assign(name, value);
             }
             error(equals, "Invalid assignment target.");
+        }
+        return expr;
+    }
+
+    private Expression or() {
+        Expression expr = and();
+        while (match(TokenType.OR)) {
+            Token op = previous();
+            Expression right = and();
+            expr = new Expression.Logical(expr, op, right);
+        }
+        return expr;
+    }
+
+    private Expression and() {
+        Expression expr = equality();
+        while (match(TokenType.AND)) {
+            Token op = previous();
+            Expression right = equality();
+            expr = new Expression.Logical(expr, op, right);
         }
         return expr;
     }

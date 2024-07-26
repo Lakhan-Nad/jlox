@@ -8,13 +8,18 @@ import com.craftinginterpreters.jlox.syntax.Expression.Binary;
 import com.craftinginterpreters.jlox.syntax.Expression.CommaSeperated;
 import com.craftinginterpreters.jlox.syntax.Expression.Grouping;
 import com.craftinginterpreters.jlox.syntax.Expression.Literal;
+import com.craftinginterpreters.jlox.syntax.Expression.Logical;
 import com.craftinginterpreters.jlox.syntax.Expression.Unary;
 import com.craftinginterpreters.jlox.syntax.Expression.Variable;
 import com.craftinginterpreters.jlox.syntax.Statement;
 import com.craftinginterpreters.jlox.syntax.Statement.Block;
+import com.craftinginterpreters.jlox.syntax.Statement.Break;
+import com.craftinginterpreters.jlox.syntax.Statement.Continue;
 import com.craftinginterpreters.jlox.syntax.Statement.Expr;
+import com.craftinginterpreters.jlox.syntax.Statement.IfElse;
 import com.craftinginterpreters.jlox.syntax.Statement.Print;
 import com.craftinginterpreters.jlox.syntax.Statement.Var;
+import com.craftinginterpreters.jlox.syntax.Statement.While;
 import com.craftinginterpreters.jlox.tools.AstPrinter;
 import com.craftinginterpreters.jlox.tools.ErrorHandler;
 import com.craftinginterpreters.jlox.tools.Logger;
@@ -74,7 +79,60 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
         return null;
     }
 
+    @Override
+    public Void visitIfElse(IfElse obj) {
+        if (isTruthy(evaluate(obj.condition))) {
+            execute(obj.thenBranch);
+        } else if (obj.elseBranch != null) {
+            execute(obj.elseBranch);
+        }
+        return null;
+    }
+
+    @Override
+    public Void visitWhile(While obj) {
+        while (isTruthy(evaluate(obj.codition))) {
+            try {
+                execute(obj.body);
+            } catch(BreakException e) {
+                break;
+            } catch(ContinueException e) {
+                continue;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public Void visitBreak(Break obj) {
+        throw new BreakException();
+    }
+
+    @Override
+    public Void visitContinue(Continue obj) {
+        throw new ContinueException();
+    }
+
     // expressions
+    @Override
+    public Object visitLogical(Logical obj) {
+        Object left = evaluate(obj.left);
+        switch (obj.op.type) {
+            case OR:
+                if (isTruthy(left)) {
+                    return left;
+                }
+                break;
+            case AND:
+                if (!isTruthy(left)) {
+                    return left;
+                }
+            default:
+                break;
+        }
+        return evaluate(obj.right);
+    }
+
     @Override
     public Object visitBinary(Binary obj) {
         Object left = evaluate(obj.left);

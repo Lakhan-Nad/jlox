@@ -103,6 +103,23 @@ public abstract class Expression {
 
 		public final Token name;
 	}
+
+	public static class Logical extends Expression {
+		public Logical(Expression left, Token op, Expression right) {
+			this.left = left;
+			this.op = op;
+			this.right = right;
+		}
+
+		@Override
+		public <R> R accept(Visitor<R> visitor) {
+			return visitor.visitLogical(this);
+		}
+
+		public final Expression left;
+		public final Token op;
+		public final Expression right;
+	}
 	public interface Visitor<T> {
 
 		T visitAssign(Expression.Assign obj);
@@ -118,6 +135,8 @@ public abstract class Expression {
 		T visitCommaSeperated(Expression.CommaSeperated obj);
 
 		T visitVariable(Expression.Variable obj);
+
+		T visitLogical(Expression.Logical obj);
 	}
 }
 

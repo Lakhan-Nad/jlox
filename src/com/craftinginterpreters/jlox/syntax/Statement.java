@@ -58,6 +58,60 @@ public abstract class Statement {
 		public final Token name;
 		public final Expression initializer;
 	}
+
+	public static class IfElse extends Statement {
+		public IfElse(Expression condition, Statement thenBranch, Statement elseBranch) {
+			this.condition = condition;
+			this.thenBranch = thenBranch;
+			this.elseBranch = elseBranch;
+		}
+
+		@Override
+		public <R> R accept(Visitor<R> visitor) {
+			return visitor.visitIfElse(this);
+		}
+
+		public final Expression condition;
+		public final Statement thenBranch;
+		public final Statement elseBranch;
+	}
+
+	public static class While extends Statement {
+		public While(Expression codition, Statement body) {
+			this.codition = codition;
+			this.body = body;
+		}
+
+		@Override
+		public <R> R accept(Visitor<R> visitor) {
+			return visitor.visitWhile(this);
+		}
+
+		public final Expression codition;
+		public final Statement body;
+	}
+
+	public static class Break extends Statement {
+		public Break() {
+		}
+
+		@Override
+		public <R> R accept(Visitor<R> visitor) {
+			return visitor.visitBreak(this);
+		}
+
+	}
+
+	public static class Continue extends Statement {
+		public Continue() {
+		}
+
+		@Override
+		public <R> R accept(Visitor<R> visitor) {
+			return visitor.visitContinue(this);
+		}
+
+	}
 	public interface Visitor<T> {
 
 		T visitBlock(Statement.Block obj);
@@ -67,6 +121,14 @@ public abstract class Statement {
 		T visitPrint(Statement.Print obj);
 
 		T visitVar(Statement.Var obj);
+
+		T visitIfElse(Statement.IfElse obj);
+
+		T visitWhile(Statement.While obj);
+
+		T visitBreak(Statement.Break obj);
+
+		T visitContinue(Statement.Continue obj);
 	}
 }
 

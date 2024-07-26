@@ -8,13 +8,18 @@ import com.craftinginterpreters.jlox.syntax.Expression.Binary;
 import com.craftinginterpreters.jlox.syntax.Expression.CommaSeperated;
 import com.craftinginterpreters.jlox.syntax.Expression.Grouping;
 import com.craftinginterpreters.jlox.syntax.Expression.Literal;
+import com.craftinginterpreters.jlox.syntax.Expression.Logical;
 import com.craftinginterpreters.jlox.syntax.Expression.Unary;
 import com.craftinginterpreters.jlox.syntax.Expression.Variable;
 import com.craftinginterpreters.jlox.syntax.Statement;
 import com.craftinginterpreters.jlox.syntax.Statement.Block;
+import com.craftinginterpreters.jlox.syntax.Statement.Break;
+import com.craftinginterpreters.jlox.syntax.Statement.Continue;
 import com.craftinginterpreters.jlox.syntax.Statement.Expr;
+import com.craftinginterpreters.jlox.syntax.Statement.IfElse;
 import com.craftinginterpreters.jlox.syntax.Statement.Print;
 import com.craftinginterpreters.jlox.syntax.Statement.Var;
+import com.craftinginterpreters.jlox.syntax.Statement.While;
 
 /**
  * AstPrinter
@@ -98,6 +103,38 @@ public class AstPrinter implements Expression.Visitor<String>, Statement.Visitor
             statements.add(stmt.accept(this));
         }
         return "{ block " + String.join("\n ", statements) + " }";
+    }
+
+    @Override
+    public String visitIfElse(IfElse obj) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("if ( " + obj.condition.accept(this) + " ) ");
+        builder.append(obj.thenBranch.accept(this));
+        if (obj.elseBranch != null) {
+            builder.append("else ");
+            builder.append(obj.elseBranch.accept(this));
+        }
+        return builder.toString();
+    }
+
+    @Override
+    public String visitWhile(While obj) {
+        return "while (" + obj.codition.accept(this) + " ) " + obj.body.accept(this); 
+    }
+
+    @Override
+    public String visitBreak(Break obj) {
+        return "statement break";
+    }
+
+    @Override
+    public String visitContinue(Continue obj) {
+        return "statement continue";
+    }
+
+    @Override
+    public String visitLogical(Logical obj) {
+        return "[ logical " + obj.left.accept(this) + " " + obj.op.lexeme + " " + obj.right.accept(this) + " ]";
     }
 
 }
