@@ -1,0 +1,3 @@
+#! /usr/bin/sh
+
+java Generator.java src/com/craftinginterpreters/jlox/syntax

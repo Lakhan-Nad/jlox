@@ -1,0 +1,3 @@
+#! /usr/bin/sh
+cd out
+java com.craftinginterpreters.jlox.Lox

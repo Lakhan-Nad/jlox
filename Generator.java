@@ -21,14 +21,19 @@ public class Generator {
                         "Grouping : Expression expr",
                         "Literal : Object value",
                         "CommaSeperated: List<Expression> expressions",
-                        "Variable: Token name"));
+                        "Variable: Token name",
+                        "Logical: Expression left, Token op, Expression right"));
         defineAst(outputDir, 
         "package com.craftinginterpreters.jlox.syntax", 
         "Statement", Arrays.asList(
                 "Block: List<Statement> stmts",
                 "Expr: Expression expr",
                 "Print: Expression expr",
-                "Var: Token name, Expression initializer"));
+                "Var: Token name, Expression initializer",
+                "IfElse: Expression condition, Statement thenBranch, Statement elseBranch",
+                "While: Expression codition, Statement body",
+                "Break: ",
+                "Continue: "));
     }
 
     private static void defineAst(
@@ -87,6 +92,9 @@ public class Generator {
 
         String[] fieldsList = fields.split(",");
         for (String field : fieldsList) {
+            if (field.isBlank()) {
+                continue;
+            }
             String name = field.trim().split(" ")[1].trim();
             writer.println(String.format("\t\t\tthis.%s = %s;", name, name));
         }
@@ -104,6 +112,9 @@ public class Generator {
         // visitor ends
 
         for (String field : fieldsList) {
+            if (field.isBlank()) {
+                continue;
+            }
             String[] fieldDescription = field.trim().split(" ");
             String type = fieldDescription[0].trim();
             String name = fieldDescription[1].trim();
