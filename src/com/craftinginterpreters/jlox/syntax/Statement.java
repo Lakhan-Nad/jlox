@@ -91,6 +91,42 @@ public abstract class Statement {
 		public final Statement body;
 	}
 
+	public static class For extends Statement {
+		public For(Statement initializer, Expression condition, Statement body, Expression change) {
+			this.initializer = initializer;
+			this.condition = condition;
+			this.body = body;
+			this.change = change;
+		}
+
+		@Override
+		public <R> R accept(Visitor<R> visitor) {
+			return visitor.visitFor(this);
+		}
+
+		public final Statement initializer;
+		public final Expression condition;
+		public final Statement body;
+		public final Expression change;
+	}
+
+	public static class Function extends Statement {
+		public Function(Token name, List<Token> params, List<Statement> stmts) {
+			this.name = name;
+			this.params = params;
+			this.stmts = stmts;
+		}
+
+		@Override
+		public <R> R accept(Visitor<R> visitor) {
+			return visitor.visitFunction(this);
+		}
+
+		public final Token name;
+		public final List<Token> params;
+		public final List<Statement> stmts;
+	}
+
 	public static class Break extends Statement {
 		public Break() {
 		}
@@ -112,6 +148,21 @@ public abstract class Statement {
 		}
 
 	}
+
+	public static class Return extends Statement {
+		public Return(Token keyword, Expression value) {
+			this.keyword = keyword;
+			this.value = value;
+		}
+
+		@Override
+		public <R> R accept(Visitor<R> visitor) {
+			return visitor.visitReturn(this);
+		}
+
+		public final Token keyword;
+		public final Expression value;
+	}
 	public interface Visitor<T> {
 
 		T visitBlock(Statement.Block obj);
@@ -126,9 +177,15 @@ public abstract class Statement {
 
 		T visitWhile(Statement.While obj);
 
+		T visitFor(Statement.For obj);
+
+		T visitFunction(Statement.Function obj);
+
 		T visitBreak(Statement.Break obj);
 
 		T visitContinue(Statement.Continue obj);
+
+		T visitReturn(Statement.Return obj);
 	}
 }
 

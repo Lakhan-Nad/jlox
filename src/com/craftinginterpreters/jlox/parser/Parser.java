@@ -1,10 +1,10 @@
 package com.craftinginterpreters.jlox.parser;
 
 import java.util.List;
-import java.util.Stack;
 import java.util.ArrayList;
-import java.util.Arrays;
 
+import com.craftinginterpreters.jlox.Constants;
+import com.craftinginterpreters.jlox.interpreter.FunctionData;
 import com.craftinginterpreters.jlox.syntax.Expression;
 import com.craftinginterpreters.jlox.syntax.Statement;
 import com.craftinginterpreters.jlox.syntax.Token;
@@ -18,19 +18,27 @@ import com.craftinginterpreters.jlox.tools.ErrorHandler;
  *           | expressionStatement
  *           | blockStatement
  *           | ifStatement
- *           | whileStatement 
- *           | forStatement 
- *           | breakStatement 
- *           | continueStatament ;
+ *           | whileStatement
+ *           | forStatement
+ *           | breakStatement
+ *           | continueStatament
+ *           | functionDeclaration
+ *           | returnStatement ;
+ * returnStatement → "return" expression? ";" ;
+ * functionDeclaration → "fun" function ;
+ * function → IDENTIFIER "(" parameters? ")" blockStatement ;
+ * parameters → IDENTIFIER ( "," IDENTIFIER );
  * printStatement → "print" expression ";" ;
- * whileStatement → "while" "(" expression ")" statement ;
- * forStatement → "for" "(" (varDeclaration | expressionStatement | ";" ) expression? ";" expression? ")" statement ;
- * ifStatement → "if" "(" expression ")" statement ( "else" statement )? ;
- * expressionStatement → expression ";" ;
- * varDeclaration → "var" IDENTIFIER ("=" expression)? ";" ;
- * expression → assignment ( "," expression )* ;
+ * blockStatement → "{" statement* "}" ;
+ * whileStatement → "while" "(" commaSeperatedExpression ")" statement ;
+ * forStatement → "for" "(" (varDeclaration | expressionStatement | ";" ) commaSeperatedExpression? ";" commaSeperatedExpression? ")" statement ;
+ * ifStatement → "if" "(" commaSeperatedExpression ")" statement ( "else" statement )? ;
+ * expressionStatement → commaSeperatedExpression ";" ;
+ * varDeclaration → "var" IDENTIFIER ( "=" expression )? ";" ;
+ * expression → assignment ;
+ * commaSeperatedExpression → expression ( "," expression )* ;
  * assignment → IDENTIFIER "=" expression
- *            | logic_or  ;
+ *            | logic_or ;
  * logic_or → logic_and ( ("or" | "||") logic_or ) ;
  * logic_and → equality ( ("and" | "&&") logic_and ) ;
  * equality → comparison ( ( "!=" | "==" ) comparison )* ;
@@ -38,21 +46,28 @@ import com.craftinginterpreters.jlox.tools.ErrorHandler;
  * term → factor ( ( "-" | "+" ) factor )* ;
  * factor → unary ( ( "/" | "*" ) unary )* ;
  * unary → ( "!" | "-" ) unary
- *       | primary ;
- * primary → NUMBER | STRING | "true" | "false" | "nil"
- *         | "(" expression ")"
- *         | IDENTIFIER ;
+ *       | call ;
+ * call → primary ( "(" arguments? ")" )* ;
+ * arguments → expression ( "," expression )
+ * primary → NUMBER 
+ *         | STRING 
+ *         | "true" 
+ *         | "false" 
+ *         | "nil"
+ *         | "(" commaSeperatedExpression ")"
+ *         | IDENTIFIER
+ *         | "fun" IDENTIFIER? "(" parameters? ")" blockStatement ;
  */
 
 public class Parser {
     private final List<Token> tokens;
     private int current;
-    private Stack<Integer> withinLoop;
+    private int withinLoop;
 
     public Parser(List<Token> tokens) {
         this.tokens = tokens;
         this.current = 0;
-        this.withinLoop = new Stack<>();
+        this.withinLoop = 0;
     }
 
     public List<Statement> parse() {
@@ -69,23 +84,77 @@ public class Parser {
 
     private Statement statement() {
         try {
-            if (match(TokenType.WHILE)) return whileStatament();
-            if (match(TokenType.FOR)) return forStatement();
-            if (match(TokenType.BREAK)) return breakStatement();
-            if (match(TokenType.CONTINUE)) return continueStatement();
-            if (match(TokenType.IF)) return ifStatement();
-            if (match(TokenType.LEFT_BRACE)) return block();
-            if (match(TokenType.VAR)) return varDeclaration();
-            if (match(TokenType.PRINT)) return printStatement();
+            if (match(TokenType.RETURN))
+                return returnStatement();
+            if (match(TokenType.FUN))
+                return functionStatement();
+            if (match(TokenType.WHILE))
+                return whileStatament();
+            if (match(TokenType.FOR))
+                return forStatement();
+            if (match(TokenType.BREAK))
+                return breakStatement();
+            if (match(TokenType.CONTINUE))
+                return continueStatement();
+            if (match(TokenType.IF))
+                return ifStatement();
+            if (match(TokenType.LEFT_BRACE))
+                return blockStatement();
+            if (match(TokenType.VAR))
+                return varDeclaration();
+            if (match(TokenType.PRINT))
+                return printStatement();
             return expressionStatement();
         } catch (ParseError error) {
             synchronize();
             return null;
-       }
+        }
+    }
+
+    private Statement returnStatement() {
+        Token keyword = previous();
+        Expression value = null;
+        if (!check(TokenType.SEMICOLON)) {
+            value = expression();
+        }
+        consume(TokenType.SEMICOLON, "expect ; after return value");
+        return new Statement.Return(keyword, value);
+    }
+
+    private Statement.Function functionStatement() {
+        FunctionData data = function("function");
+        if (data.name == null) {
+            error(previous(), "anonymous function not allowed in function declaration");
+        }
+        return new Statement.Function(data.name, data.parameters, data.statements);
+    }
+
+    private FunctionData function(String kind) {
+        Token name = null;
+        if (check(TokenType.IDENTIFIER)) {
+            name = consume(TokenType.IDENTIFIER, "expect name of a " + kind);
+        }
+        consume(TokenType.LEFT_PAREN, "expect ( after " + kind + " name");
+        List<Token> parameters = new ArrayList<>();
+        if (!check(TokenType.RIGHT_PAREN)) {
+            do {
+                if (parameters.size() >= Constants.MAX_FUNCTION_PARAMS) {
+                    error(peek(),
+                            "cannot have more than " + Constants.MAX_FUNCTION_PARAMS + " parameters in a " + kind);
+                }
+                parameters
+                        .add(consume(TokenType.IDENTIFIER, "expect name of an identifier in parameters of a " + kind));
+            } while (match(TokenType.COMMA));
+        }
+        consume(TokenType.RIGHT_PAREN, "expect ) after " + kind + " parameters");
+        consume(TokenType.LEFT_BRACE, "expect { at start of body of " + kind);
+        List<Statement> stmts = getStatements();
+        consume(TokenType.RIGHT_BRACE, "expect '}' after " + kind + "statements");
+        return new FunctionData(name, parameters, stmts);
     }
 
     private Statement continueStatement() {
-        if (withinLoop.isEmpty()) {
+        if (withinLoop == 0) {
             throw error(previous(), "continue cannot be used outside of loops");
         }
         consume(TokenType.SEMICOLON, "; is mandatory after continue");
@@ -93,7 +162,7 @@ public class Parser {
     }
 
     private Statement breakStatement() {
-        if (withinLoop.isEmpty()) {
+        if (withinLoop == 0) {
             throw error(previous(), "break cannot be used outside of loops");
         }
         consume(TokenType.SEMICOLON, "; is mandatory after break");
@@ -107,53 +176,52 @@ public class Parser {
             initializer = null; // consumed semicolon
         } else if (match(TokenType.VAR)) {
             initializer = varDeclaration(); // ends with semicolon, so consumed
-        } else { 
+        } else {
             initializer = expressionStatement(); // ends with semicolon, so consumed
         }
         Expression condition = null;
         if (!check(TokenType.SEMICOLON)) {
-            condition = expression();
+            condition = commaSeperatedExpression();
         }
         consume(TokenType.SEMICOLON, "expect ; after condition in for");
         Expression change = null;
         if (!check(TokenType.RIGHT_PAREN)) {
-            change = expression();
+            change = commaSeperatedExpression();
         }
         consume(TokenType.RIGHT_PAREN, "expect ) after for");
-        Statement body = statement();
         if (condition == null) {
             condition = new Expression.Literal(true);
         }
-        List<Statement> blocks = new ArrayList<>();
-        blocks.add(body);
-        if (change != null) {
-            blocks.add(new Statement.Expr(change));
+        try {
+            this.withinLoop++;
+            Statement body = statement();
+            return new Statement.For(initializer, condition, body, change);
+        } finally {
+            this.withinLoop--;
         }
-        Statement whileStatement = new Statement.While(condition, new Statement.Block(blocks));
-        if (initializer != null) {
-            return new Statement.Block(Arrays.asList(initializer, whileStatement));
-        } 
-        return whileStatement;
     }
 
     private Statement whileStatament() {
-       consume(TokenType.LEFT_PAREN, "missin ( after while");
-       Expression condition;
-       if (!check(TokenType.RIGHT_PAREN)) {
-        condition = expression();
-       } else {
-        condition = new Expression.Literal(true);
-       }
-       consume(TokenType.RIGHT_PAREN, "missing ) after while and condition");
-       withinLoop.push(1);
-       Statement body = statement();
-       withinLoop.pop();
-       return new Statement.While(condition, body);
+        consume(TokenType.LEFT_PAREN, "missin ( after while");
+        Expression condition;
+        if (!check(TokenType.RIGHT_PAREN)) {
+            condition = commaSeperatedExpression();
+        } else {
+            condition = new Expression.Literal(true);
+        }
+        consume(TokenType.RIGHT_PAREN, "missing ) after while and condition");
+        try {
+            withinLoop++;
+            Statement body = statement();
+            return new Statement.While(condition, body);
+        } finally {
+            withinLoop--;
+        }
     }
 
     private Statement ifStatement() {
         consume(TokenType.LEFT_PAREN, "missing ( after if");
-        Expression ifCondition = expression();
+        Expression ifCondition = commaSeperatedExpression();
         consume(TokenType.RIGHT_PAREN, "missing ) after if and condition");
         Statement thenStatement = statement();
         Statement elseStatement = null;
@@ -163,13 +231,18 @@ public class Parser {
         return new Statement.IfElse(ifCondition, thenStatement, elseStatement);
     }
 
-    private Statement block() {
-        List<Statement> statements = new ArrayList<>();
-        while (!check(TokenType.RIGHT_BRACE) && !isAtEnd()) {
-          statements.add(statement());
-        }
+    private Statement blockStatement() {
+        List<Statement> statements = getStatements();
         consume(TokenType.RIGHT_BRACE, "Expect '}' after block.");
         return new Statement.Block(statements);
+    }
+
+    private List<Statement> getStatements() {
+        List<Statement> statements = new ArrayList<>();
+        while (!check(TokenType.RIGHT_BRACE) && !isAtEnd()) {
+            statements.add(statement());
+        }
+        return statements;
     }
 
     private Statement varDeclaration() {
@@ -183,7 +256,7 @@ public class Parser {
     }
 
     private Statement expressionStatement() {
-        Expression expr = expression();
+        Expression expr = commaSeperatedExpression();
         consume(TokenType.SEMICOLON, "Expect ';' at end of statement");
         return new Statement.Expr(expr);
     }
@@ -194,7 +267,8 @@ public class Parser {
         return new Statement.Print(expr);
     }
 
-    private Expression expression() {
+    
+    private Expression commaSeperatedExpression() {
         List<Expression> expressions = new ArrayList<Expression>();
         Expression expr = assignment();
         while (match(TokenType.COMMA)) {
@@ -205,6 +279,10 @@ public class Parser {
         }
         expressions.add(0, expr);
         return new Expression.CommaSeperated(expressions);
+    }
+
+    private Expression expression() {
+        return assignment();
     }
 
     private Expression assignment() {
@@ -287,7 +365,30 @@ public class Parser {
             Expression expr = unary();
             return new Expression.Unary(op, expr);
         }
-        return primary();
+        return call();
+    }
+
+    private Expression call() {
+        Expression expr = primary();
+        while (match(TokenType.LEFT_PAREN)) {
+            expr = finishCall(expr);
+        }
+        return expr;
+    }
+
+    private Expression finishCall(Expression callee) {
+        List<Expression> arguments = new ArrayList<>();
+        if (!check(TokenType.RIGHT_PAREN)) {
+            do {
+                arguments.add(expression());
+                if (arguments.size() >= Constants.MAX_FUNCTION_PARAMS) {
+                    error(peek(),
+                            "cannot have more than " + Constants.MAX_FUNCTION_PARAMS + " arguments in a function");
+                }
+            } while (match(TokenType.COMMA));
+        }
+        Token paren = consume(TokenType.RIGHT_PAREN, "expect ) to end function call");
+        return new Expression.Call(callee, paren, arguments);
     }
 
     private Expression primary() {
@@ -297,6 +398,10 @@ public class Parser {
             return new Expression.Literal(true);
         if (match(TokenType.NIL))
             return new Expression.Literal(null);
+        if (match(TokenType.FUN)) {
+            FunctionData data = function("lambda");
+            return new Expression.FunctionExpr(data.name, data.parameters, data.statements);
+        }
 
         if (match(TokenType.NUMBER, TokenType.STRING)) {
             return new Expression.Literal(previous().literal);

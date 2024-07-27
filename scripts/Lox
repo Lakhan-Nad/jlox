@@ -1,3 +1,2 @@
 #! /usr/bin/sh
-cd out
-java com.craftinginterpreters.jlox.Lox
+java -cp ./out com.craftinginterpreters.jlox.Lox

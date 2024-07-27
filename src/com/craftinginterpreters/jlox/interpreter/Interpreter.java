@@ -1,11 +1,14 @@
 package com.craftinginterpreters.jlox.interpreter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.craftinginterpreters.jlox.syntax.Expression;
 import com.craftinginterpreters.jlox.syntax.Expression.Assign;
 import com.craftinginterpreters.jlox.syntax.Expression.Binary;
+import com.craftinginterpreters.jlox.syntax.Expression.Call;
 import com.craftinginterpreters.jlox.syntax.Expression.CommaSeperated;
+import com.craftinginterpreters.jlox.syntax.Expression.FunctionExpr;
 import com.craftinginterpreters.jlox.syntax.Expression.Grouping;
 import com.craftinginterpreters.jlox.syntax.Expression.Literal;
 import com.craftinginterpreters.jlox.syntax.Expression.Logical;
@@ -16,8 +19,11 @@ import com.craftinginterpreters.jlox.syntax.Statement.Block;
 import com.craftinginterpreters.jlox.syntax.Statement.Break;
 import com.craftinginterpreters.jlox.syntax.Statement.Continue;
 import com.craftinginterpreters.jlox.syntax.Statement.Expr;
+import com.craftinginterpreters.jlox.syntax.Statement.For;
+import com.craftinginterpreters.jlox.syntax.Statement.Function;
 import com.craftinginterpreters.jlox.syntax.Statement.IfElse;
 import com.craftinginterpreters.jlox.syntax.Statement.Print;
+import com.craftinginterpreters.jlox.syntax.Statement.Return;
 import com.craftinginterpreters.jlox.syntax.Statement.Var;
 import com.craftinginterpreters.jlox.syntax.Statement.While;
 import com.craftinginterpreters.jlox.tools.AstPrinter;
@@ -25,7 +31,7 @@ import com.craftinginterpreters.jlox.tools.ErrorHandler;
 import com.craftinginterpreters.jlox.tools.Logger;
 
 public class Interpreter implements Expression.Visitor<Object>, Statement.Visitor<Void> {
-    private Environment environment = new Environment();
+    private Environment environment = new Environment(LoxGlobalEnvironment.Global);
 
     public void interpret(List<Statement> statements) {
         try {
@@ -63,14 +69,14 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
 
     @Override
     public Void visitVar(Var obj) {
-       if (obj.initializer != null) {
+        if (obj.initializer != null) {
             environment.declare(obj.name);
             Object value = evaluate(obj.initializer);
             environment.assign(obj.name, value);
-       } else {
+        } else {
             environment.declare(obj.name);
-       }
-       return null;
+        }
+        return null;
     }
 
     @Override
@@ -94,10 +100,30 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
         while (isTruthy(evaluate(obj.codition))) {
             try {
                 execute(obj.body);
-            } catch(BreakException e) {
+            } catch (BreakException e) {
                 break;
-            } catch(ContinueException e) {
+            } catch (ContinueException e) {
                 continue;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public Void visitFor(For obj) {
+        if (obj.initializer != null) {
+            execute(obj.initializer);
+        }
+        while (isTruthy(evaluate(obj.condition))) {
+            try {
+                execute(obj.body);
+            } catch (BreakException e) {
+                break;
+            } catch (ContinueException e) {
+                continue;
+            }
+            if (obj.change != null) {
+                evaluate(obj.change);
             }
         }
         return null;
@@ -113,7 +139,45 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
         throw new ContinueException();
     }
 
+    @Override
+    public Void visitFunction(Function obj) {
+        LoxFunction func = new LoxFunction(obj.name, obj.params, obj.stmts, environment);
+        environment.define(obj.name, func);
+        return null;
+    }
+
+    @Override
+    public Void visitReturn(Return obj) {
+        Object value = null;
+        if (obj.value != null)
+            value = evaluate(obj.value);
+        throw new ReturnException(value);
+    }
+
     // expressions
+    @Override
+    public Object visitFunctionExpr(FunctionExpr obj) {
+        return new LoxFunction(obj.name, obj.params, obj.stmts, environment);
+    }
+
+    @Override
+    public Object visitCall(Call obj) {
+        Object callee = evaluate(obj.callee);
+        List<Object> arguments = new ArrayList<>();
+        for (Expression arg : obj.arguments) {
+            arguments.add(evaluate(arg));
+        }
+        if (!(callee instanceof LoxCallable)) {
+            throw new RuntimeError(obj.paren, "can only call functions and classes");
+        }
+        LoxCallable function = (LoxCallable) callee;
+        if (arguments.size() != function.arity()) {
+            throw new RuntimeError(obj.paren,
+                    String.format("expected %d arguments but got %d", function.arity(), arguments.size()));
+        }
+        return function.call(this, arguments);
+    }
+
     @Override
     public Object visitLogical(Logical obj) {
         Object left = evaluate(obj.left);
@@ -277,18 +341,17 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
         return value;
     }
 
-    private void executeBlock(List<Statement> stmts, Environment newEnv) {
-        Environment previous = newEnv.enclosing;
+    void executeBlock(List<Statement> stmts, Environment newEnv) {
+        Environment previous = this.environment;
         try {
             this.environment = newEnv;
-            for (Statement stmt: stmts) {
+            for (Statement stmt : stmts) {
                 execute(stmt);
             }
         } finally {
             this.environment = previous;
         }
     }
-
 
     private boolean isTruthy(Object obj) {
         if (obj == null)

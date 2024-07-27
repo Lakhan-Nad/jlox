@@ -22,7 +22,9 @@ public class Generator {
                         "Literal : Object value",
                         "CommaSeperated: List<Expression> expressions",
                         "Variable: Token name",
-                        "Logical: Expression left, Token op, Expression right"));
+                        "Logical: Expression left, Token op, Expression right",
+                        "Call: Expression callee, Token paren, List<Expression> arguments",
+                        "FunctionExpr: Token name, List<Token> params, List<Statement> stmts"));
         defineAst(outputDir, 
         "package com.craftinginterpreters.jlox.syntax", 
         "Statement", Arrays.asList(
@@ -32,8 +34,11 @@ public class Generator {
                 "Var: Token name, Expression initializer",
                 "IfElse: Expression condition, Statement thenBranch, Statement elseBranch",
                 "While: Expression codition, Statement body",
+                "For: Statement initializer, Expression condition, Statement body, Expression change",
+                "Function: Token name, List<Token> params, List<Statement> stmts",
                 "Break: ",
-                "Continue: "));
+                "Continue: ",
+                "Return: Token keyword, Expression value"));
     }
 
     private static void defineAst(

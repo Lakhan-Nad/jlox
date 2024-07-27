@@ -5,7 +5,9 @@ import java.util.ArrayList;
 import com.craftinginterpreters.jlox.syntax.Expression;
 import com.craftinginterpreters.jlox.syntax.Expression.Assign;
 import com.craftinginterpreters.jlox.syntax.Expression.Binary;
+import com.craftinginterpreters.jlox.syntax.Expression.Call;
 import com.craftinginterpreters.jlox.syntax.Expression.CommaSeperated;
+import com.craftinginterpreters.jlox.syntax.Expression.FunctionExpr;
 import com.craftinginterpreters.jlox.syntax.Expression.Grouping;
 import com.craftinginterpreters.jlox.syntax.Expression.Literal;
 import com.craftinginterpreters.jlox.syntax.Expression.Logical;
@@ -16,8 +18,11 @@ import com.craftinginterpreters.jlox.syntax.Statement.Block;
 import com.craftinginterpreters.jlox.syntax.Statement.Break;
 import com.craftinginterpreters.jlox.syntax.Statement.Continue;
 import com.craftinginterpreters.jlox.syntax.Statement.Expr;
+import com.craftinginterpreters.jlox.syntax.Statement.For;
+import com.craftinginterpreters.jlox.syntax.Statement.Function;
 import com.craftinginterpreters.jlox.syntax.Statement.IfElse;
 import com.craftinginterpreters.jlox.syntax.Statement.Print;
+import com.craftinginterpreters.jlox.syntax.Statement.Return;
 import com.craftinginterpreters.jlox.syntax.Statement.Var;
 import com.craftinginterpreters.jlox.syntax.Statement.While;
 
@@ -82,7 +87,7 @@ public class AstPrinter implements Expression.Visitor<String>, Statement.Visitor
 
     @Override
     public String visitExpr(Expr obj) {
-        return "[ expr " + obj.expr.accept(this) + " ]"; 
+        return "[ expr " + obj.expr.accept(this) + " ]";
     }
 
     @Override
@@ -93,13 +98,13 @@ public class AstPrinter implements Expression.Visitor<String>, Statement.Visitor
     @Override
     public String visitVar(Var obj) {
         String initlializer = obj.initializer == null ? "" : " = " + obj.initializer.accept(this);
-        return "[ var " + obj.name.lexeme + initlializer  + " ]";
+        return "[ var " + obj.name.lexeme + initlializer + " ]";
     }
 
     @Override
     public String visitBlock(Block obj) {
         List<String> statements = new ArrayList<>();
-        for (Statement stmt: obj.stmts) {
+        for (Statement stmt : obj.stmts) {
             statements.add(stmt.accept(this));
         }
         return "{ block " + String.join("\n ", statements) + " }";
@@ -119,7 +124,7 @@ public class AstPrinter implements Expression.Visitor<String>, Statement.Visitor
 
     @Override
     public String visitWhile(While obj) {
-        return "while (" + obj.codition.accept(this) + " ) " + obj.body.accept(this); 
+        return "while (" + obj.codition.accept(this) + " ) " + obj.body.accept(this);
     }
 
     @Override
@@ -135,6 +140,31 @@ public class AstPrinter implements Expression.Visitor<String>, Statement.Visitor
     @Override
     public String visitLogical(Logical obj) {
         return "[ logical " + obj.left.accept(this) + " " + obj.op.lexeme + " " + obj.right.accept(this) + " ]";
+    }
+
+    @Override
+    public String visitFor(For obj) {
+        return "for";
+    }
+
+    @Override
+    public String visitFunction(Function obj) {
+        return "function";
+    }
+
+    @Override
+    public String visitReturn(Return obj) {
+        return "return";
+    }
+
+    @Override
+    public String visitCall(Call obj) {
+        return "call";
+    }
+
+    @Override
+    public String visitFunctionExpr(FunctionExpr obj) {
+        return "functionExpression";
     }
 
 }

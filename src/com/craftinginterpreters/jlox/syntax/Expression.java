@@ -120,6 +120,40 @@ public abstract class Expression {
 		public final Token op;
 		public final Expression right;
 	}
+
+	public static class Call extends Expression {
+		public Call(Expression callee, Token paren, List<Expression> arguments) {
+			this.callee = callee;
+			this.paren = paren;
+			this.arguments = arguments;
+		}
+
+		@Override
+		public <R> R accept(Visitor<R> visitor) {
+			return visitor.visitCall(this);
+		}
+
+		public final Expression callee;
+		public final Token paren;
+		public final List<Expression> arguments;
+	}
+
+	public static class FunctionExpr extends Expression {
+		public FunctionExpr(Token name, List<Token> params, List<Statement> stmts) {
+			this.name = name;
+			this.params = params;
+			this.stmts = stmts;
+		}
+
+		@Override
+		public <R> R accept(Visitor<R> visitor) {
+			return visitor.visitFunctionExpr(this);
+		}
+
+		public final Token name;
+		public final List<Token> params;
+		public final List<Statement> stmts;
+	}
 	public interface Visitor<T> {
 
 		T visitAssign(Expression.Assign obj);
@@ -137,6 +171,10 @@ public abstract class Expression {
 		T visitVariable(Expression.Variable obj);
 
 		T visitLogical(Expression.Logical obj);
+
+		T visitCall(Expression.Call obj);
+
+		T visitFunctionExpr(Expression.FunctionExpr obj);
 	}
 }
 

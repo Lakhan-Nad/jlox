@@ -3,6 +3,5 @@ if test -d out; then
     cd out
     find . -type f -name "*.class" -delete
     cd ..
-fi    
-cd src
-javac -d ../out/ -cp . com/craftinginterpreters/jlox/Lox.java
+fi
+javac -d ./out/ -cp ./src src/com/craftinginterpreters/jlox/Lox.java
