@@ -63,6 +63,7 @@ public class Parser {
     private final List<Token> tokens;
     private int current;
     private int withinLoop;
+    private int withinFunction;
 
     public Parser(List<Token> tokens) {
         this.tokens = tokens;
@@ -112,6 +113,9 @@ public class Parser {
     }
 
     private Statement returnStatement() {
+        if (this.withinFunction == 0) {
+            throw error(previous(), "top level return not allowed use only inside function");
+        }
         Token keyword = previous();
         Expression value = null;
         if (!check(TokenType.SEMICOLON)) {
@@ -127,30 +131,6 @@ public class Parser {
             error(previous(), "anonymous function not allowed in function declaration");
         }
         return new Statement.Function(data.name, data.parameters, data.statements);
-    }
-
-    private FunctionData function(String kind) {
-        Token name = null;
-        if (check(TokenType.IDENTIFIER)) {
-            name = consume(TokenType.IDENTIFIER, "expect name of a " + kind);
-        }
-        consume(TokenType.LEFT_PAREN, "expect ( after " + kind + " name");
-        List<Token> parameters = new ArrayList<>();
-        if (!check(TokenType.RIGHT_PAREN)) {
-            do {
-                if (parameters.size() >= Constants.MAX_FUNCTION_PARAMS) {
-                    error(peek(),
-                            "cannot have more than " + Constants.MAX_FUNCTION_PARAMS + " parameters in a " + kind);
-                }
-                parameters
-                        .add(consume(TokenType.IDENTIFIER, "expect name of an identifier in parameters of a " + kind));
-            } while (match(TokenType.COMMA));
-        }
-        consume(TokenType.RIGHT_PAREN, "expect ) after " + kind + " parameters");
-        consume(TokenType.LEFT_BRACE, "expect { at start of body of " + kind);
-        List<Statement> stmts = getStatements();
-        consume(TokenType.RIGHT_BRACE, "expect '}' after " + kind + "statements");
-        return new FunctionData(name, parameters, stmts);
     }
 
     private Statement continueStatement() {
@@ -235,14 +215,6 @@ public class Parser {
         List<Statement> statements = getStatements();
         consume(TokenType.RIGHT_BRACE, "Expect '}' after block.");
         return new Statement.Block(statements);
-    }
-
-    private List<Statement> getStatements() {
-        List<Statement> statements = new ArrayList<>();
-        while (!check(TokenType.RIGHT_BRACE) && !isAtEnd()) {
-            statements.add(statement());
-        }
-        return statements;
     }
 
     private Statement varDeclaration() {
@@ -417,6 +389,44 @@ public class Parser {
             return new Expression.Grouping(expr);
         }
         throw error(peek(), "Expect expression.");
+    }
+
+    private List<Statement> getStatements() {
+        List<Statement> statements = new ArrayList<>();
+        while (!check(TokenType.RIGHT_BRACE) && !isAtEnd()) {
+            statements.add(statement());
+        }
+        return statements;
+    }
+
+    private FunctionData function(String kind) {
+        Token name = null;
+        if (check(TokenType.IDENTIFIER)) {
+            name = consume(TokenType.IDENTIFIER, "expect name of a " + kind);
+        }
+        consume(TokenType.LEFT_PAREN, "expect ( after " + kind + " name");
+        List<Token> parameters = new ArrayList<>();
+        if (!check(TokenType.RIGHT_PAREN)) {
+            do {
+                if (parameters.size() >= Constants.MAX_FUNCTION_PARAMS) {
+                    error(peek(),
+                            "cannot have more than " + Constants.MAX_FUNCTION_PARAMS + " parameters in a " + kind);
+                }
+                parameters
+                        .add(consume(TokenType.IDENTIFIER, "expect name of an identifier in parameters of a " + kind));
+            } while (match(TokenType.COMMA));
+        }
+        consume(TokenType.RIGHT_PAREN, "expect ) after " + kind + " parameters");
+        consume(TokenType.LEFT_BRACE, "expect { at start of body of " + kind);
+        List<Statement> stmts = new ArrayList<>();
+        try {
+            this.withinFunction++;
+            stmts = getStatements();
+        } finally {
+            this.withinFunction--;
+        }
+        consume(TokenType.RIGHT_BRACE, "expect '}' after " + kind + "statements");
+        return new FunctionData(name, parameters, stmts);
     }
 
     private void synchronize() {

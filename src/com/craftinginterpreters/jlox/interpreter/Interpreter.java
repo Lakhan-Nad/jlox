@@ -36,7 +36,7 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
     public void interpret(List<Statement> statements) {
         try {
             for (Statement stmt : statements) {
-                execute(stmt);
+                execute(stmt);   
             }
         } catch (RuntimeError error) {
             ErrorHandler.runtimeError(error);
@@ -69,19 +69,17 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
 
     @Override
     public Void visitVar(Var obj) {
+        environment.declare(obj.name);
         if (obj.initializer != null) {
-            environment.declare(obj.name);
             Object value = evaluate(obj.initializer);
             environment.assign(obj.name, value);
-        } else {
-            environment.declare(obj.name);
         }
         return null;
     }
 
     @Override
     public Void visitBlock(Block obj) {
-        executeBlock(obj.stmts, new Environment(environment));
+        executeBlock(obj.stmts, new Environment(this.environment));
         return null;
     }
 
@@ -149,8 +147,8 @@ public class Interpreter implements Expression.Visitor<Object>, Statement.Visito
     @Override
     public Void visitReturn(Return obj) {
         Object value = null;
-        if (obj.value != null)
-            value = evaluate(obj.value);
+        if (obj.expr != null)
+            value = evaluate(obj.expr);
         throw new ReturnException(value);
     }
 

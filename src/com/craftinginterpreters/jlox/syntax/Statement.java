@@ -150,9 +150,9 @@ public abstract class Statement {
 	}
 
 	public static class Return extends Statement {
-		public Return(Token keyword, Expression value) {
+		public Return(Token keyword, Expression expr) {
 			this.keyword = keyword;
-			this.value = value;
+			this.expr = expr;
 		}
 
 		@Override
@@ -161,7 +161,7 @@ public abstract class Statement {
 		}
 
 		public final Token keyword;
-		public final Expression value;
+		public final Expression expr;
 	}
 	public interface Visitor<T> {
 

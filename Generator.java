@@ -38,7 +38,7 @@ public class Generator {
                 "Function: Token name, List<Token> params, List<Statement> stmts",
                 "Break: ",
                 "Continue: ",
-                "Return: Token keyword, Expression value"));
+                "Return: Token keyword, Expression expr"));
     }
 
     private static void defineAst(

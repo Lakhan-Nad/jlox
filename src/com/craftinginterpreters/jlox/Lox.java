@@ -12,10 +12,17 @@ import com.craftinginterpreters.jlox.syntax.Statement;
 import com.craftinginterpreters.jlox.syntax.Token;
 import com.craftinginterpreters.jlox.interpreter.Interpreter;
 import com.craftinginterpreters.jlox.parser.Parser;
+import com.craftinginterpreters.jlox.parser.Resolver;
 import com.craftinginterpreters.jlox.tools.ErrorHandler;
+import com.craftinginterpreters.jlox.tools.Logger;
+import com.craftinginterpreters.jlox.tools.Logger.Level;
 
 public class Lox {
   public static Interpreter interpreter = new Interpreter();
+  
+  static {
+    Logger.setLogLevel(Level.INFO);
+  }
 
   public static void main(String[] args) throws IOException {
     if (args.length > 1) {
@@ -60,6 +67,13 @@ public class Lox {
 
     Parser parser = new Parser(tokens);
     List<Statement> statements = parser.parse();
+
+    if (ErrorHandler.hadError) {
+      return;
+    }
+
+    Resolver resolver = new Resolver();
+    resolver.resolve(statements);
 
     if (ErrorHandler.hadError) {
       return;

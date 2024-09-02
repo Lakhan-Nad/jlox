@@ -1,33 +1,17 @@
 package com.craftinginterpreters.jlox.interpreter;
 
-import java.util.Map;
-
 import com.craftinginterpreters.jlox.syntax.Token;
-
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Environment {
     final Environment enclosing;
 
-    private class ValueWrapper {
-        public boolean assigned;
-        public Object value;
-
-        ValueWrapper(Object value) {
-            this.assigned = true;
-            this.value = value;
-        }
-
-        ValueWrapper() {
-            this.assigned = false;
-            this.value = null;
-        }
-    }
-
-    private final Map<String, ValueWrapper> values = new HashMap<>();
+    List<Object> values;
 
     public Environment(Environment parent) {
         this.enclosing = parent;
+        this.values = new ArrayList<>();
     }
 
     public Environment() {
@@ -35,44 +19,44 @@ public class Environment {
     }
 
     public Object get(Token name) {
-        if (values.containsKey(name.lexeme)) {
-            ValueWrapper val = values.get(name.lexeme);
-            if (!val.assigned) {
-                throw new RuntimeError(name, "variable is not assigned yet.");
-            }
-            return val.value;
+        Environment container = getContainer(name);
+        if (container.values.size() <= name.slot) {
+            throw new RuntimeError(name, "trying to access undeclared variable");
         }
-        if (enclosing != null) {
-            return enclosing.get(name);
-        }
-        throw new RuntimeError(name, "undefined value.");
+        return container.values.get(name.slot);
     }
 
     public void assign(Token name, Object value) {
-        if (values.containsKey(name.lexeme)) {
-            ValueWrapper val = values.get(name.lexeme);
-            val.assigned = true;
-            val.value = value;
-            return;
+        Environment container = getContainer(name);
+        if (container.values.size() <= name.slot) {
+            throw new RuntimeError(name, "trying to access undeclared variable");
         }
-        if (enclosing != null) {
-            enclosing.assign(name, value);
-            return;
-        }
-        throw new RuntimeError(name, "undeclared reference.");
+        container.values.add(name.slot, value);
     }
 
     public void define(Token name, Object value) {
-        if (values.containsKey(name.lexeme)) {
-            throw new RuntimeError(name, "re definition of already present reference");
-        }
-        values.put(name.lexeme, new ValueWrapper(value));
+        Environment container = getContainer(name);
+        makeContainerValue(name, container);
+        container.values.add(name.slot, value); 
     }
 
     public void declare(Token name) {
-        if (values.containsKey(name.lexeme)) {
-            throw new RuntimeError(name, "re definition of already present reference");
+        Environment container = getContainer(name);
+        makeContainerValue(name, container);
+    }
+
+    private void makeContainerValue(Token name, Environment container) {
+        while (container.values.size() <= name.slot) {
+            container.values.add(null);
         }
-        values.put(name.lexeme, new ValueWrapper());
+    }
+
+    private Environment getContainer(Token name) {
+        int hops = name.hops;
+        Environment container = this;
+        while (hops-- > 0) {
+            container = container.enclosing;
+        }
+        return container;
     }
 }
